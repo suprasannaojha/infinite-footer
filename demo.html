@@ -120,32 +120,6 @@
         --footer-bg-color: #fff;
         --footer-stroke-width: 3;
       }
-
-      /* Container scroll demo */
-      .scroll-container-demo {
-        margin: 40px 0;
-        padding: 20px;
-        background: #fff;
-        border-radius: 8px;
-        border: 2px solid #ddd;
-      }
-
-      .scroll-container {
-        height: 400px;
-        overflow-y: auto;
-        border: 2px solid #0066cc;
-        border-radius: 4px;
-        position: relative;
-      }
-
-      .scroll-content {
-        padding: 20px;
-        min-height: 200px;
-      }
-
-      .scroll-content h3 {
-        margin-bottom: 1rem;
-      }
     </style>
   </head>
   <body>
@@ -182,9 +156,6 @@
           <span class="tag">&lt;infinite-footer</span>
           <span class="attr">text</span>=<span class="string"
             >"DEVELOPERS"</span
-          >
-          <span class="attr">footer-height</span>=<span class="string"
-            >"300vh"</span
           >
           <span class="attr">text-color</span>=<span class="string"
             >"#1d1d1d"</span
@@ -388,44 +359,11 @@
       </div>
 
       <div class="section">
-        <h2>🔄 Container Scroll Demo</h2>
-        <p>
-          The footer can work inside a scrollable container instead of the
-          window:
-        </p>
-        <div class="scroll-container-demo">
-          <h3>Scrollable Container Example</h3>
-          <p>This footer scrolls within a fixed-height container:</p>
-          <div class="scroll-container" id="scrollContainer">
-            <div class="scroll-content">
-              <h3>Content Before Footer</h3>
-              <p>Scroll down inside this container to see the footer effect.</p>
-              <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-                eiusmod tempor incididunt ut labore et dolore magna aliqua.
-              </p>
-              <p>Keep scrolling down...</p>
-              <p style="margin-bottom: 300px">Almost there...</p>
-            </div>
-            <infinite-footer
-              text="CONTAINER"
-              footer-height="600px"
-              text-color="#0066cc"
-              scroll-container="#scrollContainer"
-            ></infinite-footer>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
         <h2>⚙️ API Reference</h2>
         <p><strong>Attributes / Properties:</strong></p>
         <ul style="line-height: 2; margin-left: 20px">
           <li>
             <code>text</code> - Primary footer text (default: "DEVELOPERS")
-          </li>
-          <li>
-            <code>footer-height</code> - Scrollable height (default: "300vh")
           </li>
           <li>
             <code>text-color</code> - Text stroke color (default: "#1d1d1d")
@@ -441,9 +379,6 @@
           <li>
             <code>texts</code> - Array of texts for loop iterations (JSON
             string)
-          </li>
-          <li>
-            <code>scroll-container</code> - CSS selector for scroll context
           </li>
           <li>
             <code>lerp-factor</code> - Animation smoothness 0-1 (default: 0.1)
@@ -465,9 +400,6 @@
         <p style="margin-top: 2rem"><strong>Methods:</strong></p>
         <ul style="line-height: 2; margin-left: 20px">
           <li><code>reset()</code> - Reset the footer to initial state</li>
-          <li>
-            <code>refreshScrollContainer()</code> - Re-attach scroll listeners
-          </li>
         </ul>
 
         <p style="margin-top: 2rem"><strong>Read-only Properties:</strong></p>
@@ -499,11 +431,7 @@
     </div>
 
     <!-- Main Footer Demo -->
-    <infinite-footer
-      id="mainFooter"
-      text="DEVELOPERS"
-      footer-height="100vh"
-    ></infinite-footer>
+    <infinite-footer id="mainFooter" text="DEVELOPERS"></infinite-footer>
 
     <script type="module" src="infinite-footer.js"></script>
     <script type="module">

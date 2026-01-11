@@ -7,14 +7,12 @@
  * @element infinite-footer
  *
  * @attr {string} text - Primary footer text (default: "DEVELOPERS")
- * @attr {string} footer-height - Total scrollable height (default: "300vh")
  * @attr {string} text-color - Text stroke color (default: "#1d1d1d")
  * @attr {string} bg-color - Background color (default: "#f5f5f5")
  * @attr {number} stroke-width - Text outline width (default: 2.5)
  * @attr {string} font-family - Font family (default: "sans-serif")
  * @attr {boolean} loop-enabled - Enable infinite loop (default: true)
  * @attr {string} texts - JSON array of texts for each loop iteration
- * @attr {string} scroll-container - CSS selector or element for scroll context
  * @attr {number} lerp-factor - Animation smoothness 0-1 (default: 0.1)
  *
  * @fires loop-complete - Fired when infinite loop resets
@@ -23,22 +21,19 @@
  * @example
  * <infinite-footer
  *   text="HELLO WORLD"
- *   text-color="#000"
- *   footer-height="400vh">
+ *   text-color="#000">
  * </infinite-footer>
  */
 class InfiniteFooter extends HTMLElement {
   static get observedAttributes() {
     return [
       "text",
-      "footer-height",
       "text-color",
       "bg-color",
       "stroke-width",
       "font-family",
       "loop-enabled",
       "texts",
-      "scroll-container",
       "lerp-factor",
     ];
   }
@@ -62,19 +57,18 @@ class InfiniteFooter extends HTMLElement {
       targetFontSize: 0,
       clearOffset: 0,
       lastClearY: Infinity,
+      initialized: false,
     };
 
     // Config with defaults
     this._config = {
       text: "DEVELOPERS",
-      footerHeight: "300vh",
       textColor: "#1d1d1d",
       bgColor: "#f5f5f5",
       strokeWidth: 2.5,
       fontFamily: "sans-serif",
       loopEnabled: true,
       texts: null, // Will be computed from text
-      scrollContainer: null,
       lerpFactor: 0.1,
     };
 
@@ -117,13 +111,6 @@ class InfiniteFooter extends HTMLElement {
         }
         break;
 
-      case "footer-height":
-        this._config.footerHeight = newValue || "300vh";
-        if (this._container) {
-          this._container.style.height = this._config.footerHeight;
-        }
-        break;
-
       case "text-color":
         this._config.textColor = newValue || "#1d1d1d";
         break;
@@ -156,11 +143,6 @@ class InfiniteFooter extends HTMLElement {
         }
         break;
 
-      case "scroll-container":
-        this._config.scrollContainer = newValue;
-        this._reattachScrollListener();
-        break;
-
       case "lerp-factor":
         this._config.lerpFactor = Math.max(
           0,
@@ -177,14 +159,6 @@ class InfiniteFooter extends HTMLElement {
   set text(value) {
     this._config.text = value;
     this.setAttribute("text", value);
-  }
-
-  get footerHeight() {
-    return this._config.footerHeight;
-  }
-  set footerHeight(value) {
-    this._config.footerHeight = value;
-    this.setAttribute("footer-height", value);
   }
 
   get textColor() {
@@ -239,21 +213,6 @@ class InfiniteFooter extends HTMLElement {
     }
   }
 
-  get scrollContainer() {
-    return this._config.scrollContainer;
-  }
-  set scrollContainer(value) {
-    this._config.scrollContainer = value;
-    if (value) {
-      this.setAttribute(
-        "scroll-container",
-        typeof value === "string" ? value : ""
-      );
-    } else {
-      this.removeAttribute("scroll-container");
-    }
-  }
-
   get lerpFactor() {
     return this._config.lerpFactor;
   }
@@ -282,7 +241,7 @@ class InfiniteFooter extends HTMLElement {
 
         .footer-container {
           position: relative;
-          height: ${this._config.footerHeight};
+          height: 200vh;
           background: var(--footer-bg-color, ${this._config.bgColor});
         }
 
@@ -415,42 +374,12 @@ class InfiniteFooter extends HTMLElement {
     this._ctx.globalCompositeOperation = "source-over";
   }
 
-  _getScrollContainer() {
-    if (!this._config.scrollContainer) {
-      return window;
-    }
-
-    if (typeof this._config.scrollContainer === "string") {
-      const element = document.querySelector(this._config.scrollContainer);
-      return element || window;
-    }
-
-    return this._config.scrollContainer instanceof Element
-      ? this._config.scrollContainer
-      : window;
-  }
-
   _getScrollMetrics() {
-    const container = this._getScrollContainer();
-
-    if (container === window) {
-      const footerRect = this.getBoundingClientRect();
-      return {
-        scrollTop: footerRect.top - this._state.windowHeight,
-        viewportHeight: this._state.windowHeight,
-        containerElement: this,
-        isWindow: true,
-      };
-    } else {
-      const containerRect = container.getBoundingClientRect();
-      const footerRect = this.getBoundingClientRect();
-      return {
-        scrollTop: footerRect.top - containerRect.top - container.clientHeight,
-        viewportHeight: container.clientHeight,
-        containerElement: container,
-        isWindow: false,
-      };
-    }
+    const footerRect = this.getBoundingClientRect();
+    return {
+      scrollTop: footerRect.top - this._state.windowHeight,
+      viewportHeight: this._state.windowHeight,
+    };
   }
 
   _handleScroll() {
@@ -461,6 +390,10 @@ class InfiniteFooter extends HTMLElement {
 
     this._state.prevScrollTop = metrics.scrollTop;
 
+    // normalizedScroll:
+    // = 0 when footer top edge is exactly at viewport bottom (footer just visible)
+    // = 1 when user has scrolled one full viewport height into the footer
+    // Increases as user scrolls down
     this._state.normalizedScroll = -(
       (this._state.prevScrollTop -
         this._state.tockCount * metrics.viewportHeight) /
@@ -475,17 +408,24 @@ class InfiniteFooter extends HTMLElement {
     }
 
     const offset = fontSize - fontSize / 3.6;
+    const canvasHeight = metrics.viewportHeight * this._state.dpr;
+
+    // Text Y position calculation:
+    // - Canvas coordinate system: 0 at top, canvasHeight at bottom
+    // - strokeText y parameter is the text BASELINE
+    // - We want text to be visible immediately when footer appears
+    //
+    // For the text to be visible at the bottom of canvas when normalizedScroll=0,
+    // we set y = canvasHeight (baseline at bottom, text visible above it)
+    // As normalizedScroll increases, text moves up (y decreases)
 
     const baseHeight =
-      metrics.viewportHeight * this._state.dpr +
-      offset -
-      this._state.normalizedScroll * metrics.viewportHeight * this._state.dpr +
-      this._state.tockCount * metrics.viewportHeight * this._state.dpr;
+      canvasHeight -
+      this._state.normalizedScroll * canvasHeight +
+      this._state.tockCount * canvasHeight;
 
     const textY =
-      this._state.tockCount > 0
-        ? baseHeight + metrics.viewportHeight * this._state.dpr
-        : baseHeight;
+      this._state.tockCount > 0 ? baseHeight + canvasHeight : baseHeight;
 
     this._state.targetY = textY;
     this._state.clearOffset = offset;
@@ -514,25 +454,15 @@ class InfiniteFooter extends HTMLElement {
       if (footerBottom < metrics.viewportHeight + 1) {
         this._state.tockCount += 1;
 
-        // Scroll back to top based on container type
-        if (metrics.isWindow) {
-          window.scrollTo(0, this.offsetTop);
-        } else {
-          metrics.containerElement.scrollTop =
-            this.offsetTop - metrics.containerElement.offsetTop;
-        }
+        // Scroll back to top of footer
+        window.scrollTo(0, this.offsetTop);
 
-        const newOffset = fontSize - fontSize / 3.6;
         const newBaseHeight =
-          metrics.viewportHeight * this._state.dpr +
-          newOffset -
-          this._state.normalizedScroll *
-            metrics.viewportHeight *
-            this._state.dpr +
-          this._state.tockCount * metrics.viewportHeight * this._state.dpr;
+          canvasHeight -
+          this._state.normalizedScroll * canvasHeight +
+          this._state.tockCount * canvasHeight;
 
-        this._state.targetY =
-          newBaseHeight + metrics.viewportHeight * this._state.dpr;
+        this._state.targetY = newBaseHeight + canvasHeight;
 
         // Dispatch loop complete event
         this.dispatchEvent(
@@ -573,28 +503,24 @@ class InfiniteFooter extends HTMLElement {
   }
 
   _attachListeners() {
-    const container = this._getScrollContainer();
-    container.addEventListener("scroll", this._boundHandleScroll, {
+    window.addEventListener("scroll", this._boundHandleScroll, {
       passive: true,
     });
     window.addEventListener("resize", this._boundHandleResize);
   }
 
   _detachListeners() {
-    const container = this._getScrollContainer();
-    container.removeEventListener("scroll", this._boundHandleScroll);
+    window.removeEventListener("scroll", this._boundHandleScroll);
     window.removeEventListener("resize", this._boundHandleResize);
-  }
-
-  _reattachScrollListener() {
-    this._detachListeners();
-    this._attachListeners();
-    this._handleScroll();
   }
 
   _init() {
     this._setupCanvas();
     this._handleScroll();
+    // Snap to target values immediately on init (no lerp delay)
+    this._state.currentY = this._state.targetY;
+    this._state.currentFontSize = this._state.targetFontSize;
+    this._state.initialized = true;
     this._animate();
   }
 
@@ -613,10 +539,6 @@ class InfiniteFooter extends HTMLElement {
     this._state.lastClearY = Infinity;
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
     this._handleScroll();
-  }
-
-  refreshScrollContainer() {
-    this._reattachScrollListener();
   }
 }
 
