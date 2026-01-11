@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Infinite Footer - Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #f5f5f5;
+        color: #1a1a1a;
+        overscroll-behavior: none;
+      }
+
+      .content {
+        min-height: 200vh;
+        padding: 60px 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .content h1 {
+        font-size: 3rem;
+        margin-bottom: 2rem;
+      }
+
+      .content h2 {
+        font-size: 1.8rem;
+        margin: 3rem 0 1rem 0;
+        padding-top: 2rem;
+        border-top: 2px solid #ddd;
+      }
+
+      .content p {
+        font-size: 1.2rem;
+        line-height: 1.8;
+        margin-bottom: 1.5rem;
+        color: #444;
+      }
+
+      .content .section {
+        padding: 100px 0;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .code-block {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 20px 0;
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .code-block .comment {
+        color: #6a9955;
+      }
+
+      .code-block .tag {
+        color: #569cd6;
+      }
+
+      .code-block .attr {
+        color: #9cdcfe;
+      }
+
+      .code-block .string {
+        color: #ce9178;
+      }
+
+      .code-block .keyword {
+        color: #c586c0;
+      }
+
+      .event-log {
+        background: #fff;
+        border: 2px solid #ddd;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.85rem;
+      }
+
+      .event-log .event-entry {
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .event-log .event-entry:last-child {
+        border-bottom: none;
+      }
+
+      .event-log .event-name {
+        color: #0066cc;
+        font-weight: bold;
+      }
+
+      .event-log .event-detail {
+        color: #666;
+        margin-left: 10px;
+      }
+
+      /* Custom styling example using CSS custom properties */
+      .custom-footer {
+        --footer-text-color: #ff6b6b;
+        --footer-bg-color: #fff;
+        --footer-stroke-width: 3;
+      }
+
+      /* Container scroll demo */
+      .scroll-container-demo {
+        margin: 40px 0;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+      }
+
+      .scroll-container {
+        height: 400px;
+        overflow-y: auto;
+        border: 2px solid #0066cc;
+        border-radius: 4px;
+        position: relative;
+      }
+
+      .scroll-content {
+        padding: 20px;
+        min-height: 200px;
+      }
+
+      .scroll-content h3 {
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <div class="section">
+        <h1>🎨 Infinite Footer Web Component</h1>
+        <p>
+          A framework-agnostic web component that creates an infinite scrolling
+          footer with a canvas-based trailing text effect. Works seamlessly with
+          vanilla JavaScript, React, Vue, Angular, and any other framework.
+        </p>
+        <p>
+          <strong>Scroll down to see the effect in action!</strong> The footer
+          will loop infinitely, changing text as you continue scrolling.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>📦 Installation</h2>
+        <p>Simply include the component script in your HTML:</p>
+        <div class="code-block">
+          <span class="tag">&lt;script</span>
+          <span class="attr">type</span>=<span class="string">"module"</span>
+          <span class="attr">src</span>=<span class="string"
+            >"infinite-footer.js"</span
+          ><span class="tag">&gt;&lt;/script&gt;</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🚀 Basic Usage (Vanilla HTML)</h2>
+        <p>Add the component to your HTML:</p>
+        <div class="code-block">
+          <span class="tag">&lt;infinite-footer</span>
+          <span class="attr">text</span>=<span class="string"
+            >"DEVELOPERS"</span
+          >
+          <span class="attr">footer-height</span>=<span class="string"
+            >"300vh"</span
+          >
+          <span class="attr">text-color</span>=<span class="string"
+            >"#1d1d1d"</span
+          >
+          <span class="attr">bg-color</span>=<span class="string"
+            >"#f5f5f5"</span
+          ><span class="tag">&gt;</span>
+          <span class="tag">&lt;/infinite-footer&gt;</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>⚛️ React Integration</h2>
+        <p>Use refs to access properties and methods:</p>
+        <div class="code-block">
+          <span class="keyword">import</span> React, { useRef, useEffect }
+          <span class="keyword">from</span> <span class="string">'react'</span>;
+          <span class="comment"
+            >// Import the web component (registers it globally)</span
+          >
+          <span class="keyword">import</span>
+          <span class="string">'./infinite-footer.js'</span>;
+
+          <span class="keyword">function</span> App() {
+          <span class="keyword">const</span> footerRef = useRef(<span
+            class="keyword"
+            >null</span
+          >); useEffect(() => { <span class="keyword">const</span> footer =
+          footerRef.current;
+
+          <span class="comment"
+            >// Set properties (better than attributes for React)</span
+          >
+          footer.text = <span class="string">"HELLO REACT"</span>; footer.texts
+          = [<span class="string">"HELLO REACT"</span>,
+          <span class="string">"Still scrolling?"</span>,
+          <span class="string">"Goodbye!"</span>]; footer.textColor =
+          <span class="string">"#61dafb"</span>;
+
+          <span class="comment">// Listen to events</span>
+          <span class="keyword">const</span> handleLoopComplete = (e) => {
+          console.log(<span class="string">'Loop'</span>, e.detail.loopCount,
+          <span class="string">'-'</span>, e.detail.currentText); };
+          footer.addEventListener(<span class="string">'loop-complete'</span>,
+          handleLoopComplete);
+
+          <span class="keyword">return</span> () => {
+          footer.removeEventListener(<span class="string">'loop-complete'</span
+          >, handleLoopComplete); }; }, []);
+
+          <span class="keyword">return</span> (
+          <span class="tag">&lt;div&gt;</span>
+          <span class="tag">&lt;h1&gt;</span>My React App<span class="tag"
+            >&lt;/h1&gt;</span
+          >
+          <span class="tag">&lt;infinite-footer</span>
+          <span class="attr">ref</span>={footerRef}<span class="tag"
+            >&gt;&lt;/infinite-footer&gt;</span
+          >
+          <span class="tag">&lt;/div&gt;</span>
+          ); }
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🟢 Vue 3 Integration</h2>
+        <p>Use template refs and v-bind:</p>
+        <div class="code-block">
+          <span class="tag">&lt;template&gt;</span>
+          <span class="tag">&lt;div&gt;</span>
+          <span class="tag">&lt;h1&gt;</span>My Vue App<span class="tag"
+            >&lt;/h1&gt;</span
+          >
+          <span class="tag">&lt;infinite-footer</span>
+          <span class="attr">ref</span>=<span class="string">"footerRef"</span>
+          <span class="attr">:text</span>=<span class="string"
+            >"footerText"</span
+          >
+          <span class="attr">text-color</span>=<span class="string"
+            >"#42b883"</span
+          >
+          <span class="attr">@loop-complete</span>=<span class="string"
+            >"onLoopComplete"</span
+          ><span class="tag">&gt;</span>
+          <span class="tag">&lt;/infinite-footer&gt;</span>
+          <span class="tag">&lt;/div&gt;</span>
+          <span class="tag">&lt;/template&gt;</span>
+
+          <span class="tag">&lt;script</span> <span class="attr">setup</span
+          ><span class="tag">&gt;</span> <span class="keyword">import</span> {
+          ref, onMounted } <span class="keyword">from</span>
+          <span class="string">'vue'</span>;
+          <span class="comment">// Import the web component</span>
+          <span class="keyword">import</span>
+          <span class="string">'./infinite-footer.js'</span>;
+
+          <span class="keyword">const</span> footerRef = ref(<span
+            class="keyword"
+            >null</span
+          >); <span class="keyword">const</span> footerText = ref(<span
+            class="string"
+            >'HELLO VUE'</span
+          >); onMounted(() => {
+          <span class="comment">// Access component via ref</span>
+          <span class="keyword">const</span> footer = footerRef.value;
+          footer.texts = [<span class="string">'HELLO VUE'</span>,
+          <span class="string">'Keep going?'</span>,
+          <span class="string">'Au revoir!'</span>]; });
+
+          <span class="keyword">const</span> onLoopComplete = (event) => {
+          console.log(<span class="string">'Loop completed:'</span>,
+          event.detail); };
+          <span class="tag">&lt;/script&gt;</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🅰️ Angular Integration</h2>
+        <p>Add CUSTOM_ELEMENTS_SCHEMA and use property binding:</p>
+        <div class="code-block">
+          <span class="comment"
+            >// app.module.ts or component standalone config</span
+          >
+          <span class="keyword">import</span> { CUSTOM_ELEMENTS_SCHEMA }
+          <span class="keyword">from</span>
+          <span class="string">'@angular/core'</span>;
+          <span class="comment"
+            >// Import the web component in main.ts or component</span
+          >
+          <span class="keyword">import</span>
+          <span class="string">'./infinite-footer.js'</span>; @NgModule({
+          schemas: [CUSTOM_ELEMENTS_SCHEMA] })
+
+          <span class="comment">// component.ts</span>
+          <span class="keyword">import</span> { Component, ViewChild, ElementRef
+          } <span class="keyword">from</span>
+          <span class="string">'@angular/core'</span>; @Component({ selector:
+          <span class="string">'app-root'</span>, template: `
+          <span class="tag">&lt;h1&gt;</span>My Angular App<span class="tag"
+            >&lt;/h1&gt;</span
+          >
+          <span class="tag">&lt;infinite-footer</span>
+          <span class="attr">#footer</span>
+          <span class="attr">[text]</span>=<span class="string"
+            >"footerText"</span
+          >
+          <span class="attr">text-color</span>=<span class="string"
+            >"#dd0031"</span
+          >
+          <span class="attr">(loop-complete)</span>=<span class="string"
+            >"onLoopComplete($event)"</span
+          ><span class="tag">&gt;</span>
+          <span class="tag">&lt;/infinite-footer&gt;</span>
+          ` })
+          <span class="keyword">export class</span> AppComponent {
+          @ViewChild(<span class="string">'footer'</span>) footerElement!:
+          ElementRef; footerText = <span class="string">'HELLO ANGULAR'</span>;
+          ngAfterViewInit() { <span class="keyword">const</span> footer =
+          <span class="keyword">this</span>.footerElement.nativeElement;
+          footer.texts = [<span class="string">'HELLO ANGULAR'</span>,
+          <span class="string">'Still here?'</span>,
+          <span class="string">'Done!'</span>]; } onLoopComplete(event:
+          CustomEvent) { console.log(<span class="string">'Loop:'</span>,
+          event.detail.loopCount); } }
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🎨 CSS Custom Properties</h2>
+        <p>
+          Style the footer using CSS custom properties for maximum flexibility:
+        </p>
+        <div class="code-block">
+          <span class="tag">&lt;style&gt;</span>
+          <span class="tag">.my-footer</span> {
+          <span class="attr">--footer-text-color</span>:
+          <span class="string">#ff6b6b</span>;
+          <span class="attr">--footer-bg-color</span>:
+          <span class="string">#ffffff</span>;
+          <span class="attr">--footer-stroke-width</span>:
+          <span class="string">3</span>; }
+          <span class="tag">&lt;/style&gt;</span>
+
+          <span class="tag">&lt;infinite-footer</span>
+          <span class="attr">class</span>=<span class="string"
+            >"my-footer"</span
+          >
+          <span class="attr">text</span>=<span class="string">"STYLED"</span
+          ><span class="tag">&gt;&lt;/infinite-footer&gt;</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>📊 Event Monitoring</h2>
+        <p>The footer emits custom events you can listen to:</p>
+        <div id="eventLog" class="event-log">
+          <div class="event-entry">
+            <span class="event-name">Scroll down to see events...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🔄 Container Scroll Demo</h2>
+        <p>
+          The footer can work inside a scrollable container instead of the
+          window:
+        </p>
+        <div class="scroll-container-demo">
+          <h3>Scrollable Container Example</h3>
+          <p>This footer scrolls within a fixed-height container:</p>
+          <div class="scroll-container" id="scrollContainer">
+            <div class="scroll-content">
+              <h3>Content Before Footer</h3>
+              <p>Scroll down inside this container to see the footer effect.</p>
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+                eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              </p>
+              <p>Keep scrolling down...</p>
+              <p style="margin-bottom: 300px">Almost there...</p>
+            </div>
+            <infinite-footer
+              text="CONTAINER"
+              footer-height="600px"
+              text-color="#0066cc"
+              scroll-container="#scrollContainer"
+            ></infinite-footer>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>⚙️ API Reference</h2>
+        <p><strong>Attributes / Properties:</strong></p>
+        <ul style="line-height: 2; margin-left: 20px">
+          <li>
+            <code>text</code> - Primary footer text (default: "DEVELOPERS")
+          </li>
+          <li>
+            <code>footer-height</code> - Scrollable height (default: "300vh")
+          </li>
+          <li>
+            <code>text-color</code> - Text stroke color (default: "#1d1d1d")
+          </li>
+          <li><code>bg-color</code> - Background color (default: "#f5f5f5")</li>
+          <li><code>stroke-width</code> - Text outline width (default: 2.5)</li>
+          <li>
+            <code>font-family</code> - Font family (default: "sans-serif")
+          </li>
+          <li>
+            <code>loop-enabled</code> - Enable infinite loop (default: true)
+          </li>
+          <li>
+            <code>texts</code> - Array of texts for loop iterations (JSON
+            string)
+          </li>
+          <li>
+            <code>scroll-container</code> - CSS selector for scroll context
+          </li>
+          <li>
+            <code>lerp-factor</code> - Animation smoothness 0-1 (default: 0.1)
+          </li>
+        </ul>
+
+        <p style="margin-top: 2rem"><strong>Events:</strong></p>
+        <ul style="line-height: 2; margin-left: 20px">
+          <li>
+            <code>loop-complete</code> - Fired when infinite loop resets
+            (detail: {loopCount, currentText})
+          </li>
+          <li>
+            <code>scroll-progress</code> - Fired on scroll (detail: {progress,
+            loopCount, normalizedScroll})
+          </li>
+        </ul>
+
+        <p style="margin-top: 2rem"><strong>Methods:</strong></p>
+        <ul style="line-height: 2; margin-left: 20px">
+          <li><code>reset()</code> - Reset the footer to initial state</li>
+          <li>
+            <code>refreshScrollContainer()</code> - Re-attach scroll listeners
+          </li>
+        </ul>
+
+        <p style="margin-top: 2rem"><strong>Read-only Properties:</strong></p>
+        <ul style="line-height: 2; margin-left: 20px">
+          <li><code>currentLoopCount</code> - Current iteration number</li>
+          <li>
+            <code>currentScrollProgress</code> - Normalized scroll position
+          </li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>📖 Learn More</h2>
+        <p>
+          This component is based on the infinite footer effect, recreating the
+          canvas-based trailing text animation with modern web component
+          standards.
+        </p>
+        <p>
+          Check out the
+          <a
+            href="https://github.com/yourusername/infinite-footer"
+            style="color: #0066cc"
+            >GitHub repository</a
+          >
+          for source code, examples, and contributing guidelines.
+        </p>
+      </div>
+    </div>
+
+    <!-- Main Footer Demo -->
+    <infinite-footer
+      id="mainFooter"
+      text="DEVELOPERS"
+      footer-height="100vh"
+    ></infinite-footer>
+
+    <script type="module" src="infinite-footer.js"></script>
+    <script type="module">
+      // Event logging demo
+      const eventLog = document.getElementById("eventLog");
+      const mainFooter = document.getElementById("mainFooter");
+
+      let eventCount = 0;
+      const maxEvents = 20;
+
+      function addEventToLog(eventName, detail) {
+        eventCount++;
+        const entry = document.createElement("div");
+        entry.className = "event-entry";
+
+        const name = document.createElement("span");
+        name.className = "event-name";
+        name.textContent = eventName;
+
+        const detailSpan = document.createElement("span");
+        detailSpan.className = "event-detail";
+        detailSpan.textContent = JSON.stringify(detail);
+
+        entry.appendChild(name);
+        entry.appendChild(detailSpan);
+
+        eventLog.insertBefore(entry, eventLog.firstChild);
+
+        // Keep only last N events
+        while (eventLog.children.length > maxEvents) {
+          eventLog.removeChild(eventLog.lastChild);
+        }
+      }
+
+      // Listen to footer events
+      mainFooter.addEventListener("loop-complete", (e) => {
+        addEventToLog("loop-complete", e.detail);
+      });
+
+      // Throttle scroll-progress events for readability
+      let lastScrollLog = 0;
+      mainFooter.addEventListener("scroll-progress", (e) => {
+        const now = Date.now();
+        if (now - lastScrollLog > 500) {
+          // Log every 500ms
+          addEventToLog("scroll-progress", {
+            progress: e.detail.progress.toFixed(2),
+            loopCount: e.detail.loopCount,
+          });
+          lastScrollLog = now;
+        }
+      });
+
+      console.log("Demo initialized. Scroll down to see the infinite footer!");
+      console.log("Main footer element:", mainFooter);
+      console.log(
+        "Try accessing properties: mainFooter.text, mainFooter.currentLoopCount"
+      );
+    </script>
+  </body>
+</html>
