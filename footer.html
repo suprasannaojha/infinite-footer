@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stripe-Style Infinite Footer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #f5f5f5;
+        color: #1a1a1a;
+        overscroll-behavior: none;
+      }
+
+      .content {
+        min-height: 200vh;
+        padding: 60px 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .content h1 {
+        font-size: 3rem;
+        margin-bottom: 2rem;
+      }
+
+      .content p {
+        font-size: 1.2rem;
+        line-height: 1.8;
+        margin-bottom: 1.5rem;
+        color: #444;
+      }
+
+      .content .section {
+        padding: 100px 0;
+        border-bottom: 1px solid #ddd;
+      }
+
+      /* Footer with tall height for scrolling */
+      .footer {
+        position: relative;
+        height: 300vh;
+        background: #f5f5f5;
+      }
+
+      .footer canvas {
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <div class="section">
+        <h1>Welcome to the Demo</h1>
+        <p>
+          This is a recreation of the Stripe.dev footer effect. Scroll down to
+          see the magic happen when you reach the footer.
+        </p>
+        <p>
+          The effect creates text that moves upward as you scroll, leaving
+          trails behind - just like the original Stripe implementation.
+        </p>
+      </div>
+
+      <div class="section">
+        <h1>How It Works</h1>
+        <p>
+          The key trick is that the canvas only clears the area ABOVE the
+          current text position. Previous renders remain visible below, creating
+          the trail effect naturally.
+        </p>
+        <p>
+          When you reach the bottom of the footer, the page scrolls back to the
+          top of the footer, creating an infinite scroll illusion.
+        </p>
+      </div>
+
+      <div class="section">
+        <h1>The Technology</h1>
+        <p>
+          Canvas 2D rendering with destination-out compositing to create
+          outline-only text. The text is stroked first, then the fill is "cut
+          out" using composite operations.
+        </p>
+      </div>
+
+      <div class="section">
+        <h1>Keep Scrolling</h1>
+        <p>
+          You're almost at the footer! Keep scrolling to see the "DEVELOPERS"
+          text appear with the trailing effect.
+        </p>
+        <p>
+          The text will change to "You're still here?" and eventually "It's
+          over." as you keep scrolling infinitely.
+        </p>
+      </div>
+    </div>
+
+    <div class="footer" id="footer">
+      <canvas id="footerCanvas"></canvas>
+    </div>
+
+    <script>
+      // ============================================
+      // INFINITE FOOTER
+      // ============================================
+
+      const canvas = document.getElementById("footerCanvas");
+      const ctx = canvas.getContext("2d");
+      const footerEl = document.getElementById("footer");
+
+      const state = {
+        dpr: window.devicePixelRatio || 1,
+        prevScrollTop: 0,
+        scrollDelta: 0,
+        normalizedScroll: 0,
+        tockCount: 0,
+        maxWidth: 1728,
+        windowHeight: window.innerHeight,
+        currentY: 0,
+        targetY: 0,
+        currentFontSize: 0,
+        targetFontSize: 0,
+        clearOffset: 0,
+        lastClearY: Infinity,
+      };
+
+      const footerText = "DEVELOPERS";
+
+      function getBaseFontSize() {
+        const baseFontSize = (state.maxWidth / 6.35) * state.dpr;
+        ctx.font = `bold ${baseFontSize}px sans-serif`;
+        const letterSpacing = -baseFontSize / 20;
+        let textWidth = 0;
+        for (let i = 0; i < footerText.length; i++) {
+          textWidth += ctx.measureText(footerText[i]).width;
+        }
+        textWidth += letterSpacing * (footerText.length - 1);
+        const availableWidth = canvas.width * 0.9;
+        if (textWidth > availableWidth) {
+          return baseFontSize * (availableWidth / textWidth);
+        }
+
+        return baseFontSize;
+      }
+
+      function setupCanvas() {
+        state.dpr = window.devicePixelRatio || 1;
+        state.maxWidth = Math.min(1728, window.innerWidth);
+        state.windowHeight = window.innerHeight;
+
+        const rect = canvas.getBoundingClientRect();
+        const newWidth = rect.width * state.dpr;
+        const newHeight = rect.height * state.dpr;
+
+        if (
+          canvas.width !== newWidth ||
+          Math.abs(canvas.height - newHeight) > 120
+        ) {
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+        }
+      }
+
+      function getCurrentText() {
+        if (state.tockCount > 8) return "You can go ❤️";
+        if (state.tockCount > 5) return "It's over.";
+        if (state.tockCount > 2) return "You're still here?";
+        return footerText;
+      }
+
+      function drawText() {
+        const text = getCurrentText();
+        const fontSize = state.currentFontSize;
+
+        if (fontSize <= 0) return;
+
+        ctx.font = `bold ${fontSize}px sans-serif`;
+
+        const newClearY = Math.max(0, state.currentY - state.clearOffset);
+
+        if (newClearY < state.lastClearY) {
+          ctx.clearRect(0, 0, canvas.width, newClearY);
+          state.lastClearY = newClearY;
+        }
+        const letterSpacing = -fontSize / 20;
+        let totalWidth = 0;
+        for (let i = 0; i < text.length; i++) {
+          totalWidth += ctx.measureText(text[i]).width;
+        }
+        totalWidth += letterSpacing * (text.length - 1);
+
+        const startX = canvas.width / 2 - totalWidth / 2 + letterSpacing / 2;
+        let currentX = startX;
+
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          ctx.globalCompositeOperation = "source-over";
+          ctx.strokeStyle = "#1d1d1d";
+          ctx.lineWidth = 2.5;
+          ctx.strokeText(char, currentX, state.currentY);
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.fillStyle = "#000";
+          ctx.fillText(char, currentX, state.currentY);
+
+          currentX += ctx.measureText(char).width + letterSpacing;
+        }
+
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      function handleScroll() {
+        if (!footerEl) return;
+
+        const prevTop = state.prevScrollTop;
+
+        state.prevScrollTop =
+          footerEl.getBoundingClientRect().top - state.windowHeight;
+
+        state.normalizedScroll = -(
+          (state.prevScrollTop - state.tockCount * state.windowHeight) /
+          state.windowHeight
+        );
+
+        let fontSize = getBaseFontSize();
+        if (state.tockCount > 0) {
+          fontSize -=
+            fontSize * Math.sin(state.normalizedScroll - 2.2) - 0.1 * fontSize;
+        }
+
+        const offset = fontSize - fontSize / 3.6;
+
+        const baseHeight =
+          state.windowHeight * state.dpr +
+          offset -
+          state.normalizedScroll * state.windowHeight * state.dpr +
+          state.tockCount * state.windowHeight * state.dpr;
+
+        const textY =
+          state.tockCount > 0
+            ? baseHeight + state.windowHeight * state.dpr
+            : baseHeight;
+
+        state.targetY = textY;
+        state.clearOffset = offset;
+        state.targetFontSize = fontSize;
+
+        state.scrollDelta = state.prevScrollTop - prevTop;
+
+        const footerBottom = footerEl.getBoundingClientRect().bottom;
+
+        if (footerBottom < state.windowHeight + 1) {
+          state.tockCount += 1;
+
+          window.scrollTo(0, footerEl.offsetTop);
+
+          const newOffset = fontSize - fontSize / 3.6;
+          const newBaseHeight =
+            state.windowHeight * state.dpr +
+            newOffset -
+            state.normalizedScroll * state.windowHeight * state.dpr +
+            state.tockCount * state.windowHeight * state.dpr;
+
+          state.targetY = newBaseHeight + state.windowHeight * state.dpr;
+        } else if (
+          state.scrollDelta > 0 &&
+          state.scrollDelta < 0.9 * state.windowHeight
+        ) {
+          state.tockCount = 0;
+          state.lastClearY = Infinity;
+        }
+      }
+
+      function animate() {
+        state.currentY += (state.targetY - state.currentY) * 0.1;
+        state.currentFontSize +=
+          (state.targetFontSize - state.currentFontSize) * 0.1;
+        drawText();
+
+        requestAnimationFrame(animate);
+      }
+
+      function init() {
+        setupCanvas();
+        handleScroll();
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        window.addEventListener("resize", () => {
+          setupCanvas();
+          handleScroll();
+        });
+
+        requestAnimationFrame(animate);
+      }
+
+      init();
+
+      console.log(
+        "Stripe-style footer initialized. Scroll down to see the effect!"
+      );
+    </script>
+  </body>
+</html>
