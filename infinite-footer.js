@@ -7,12 +7,13 @@
  * @element infinite-footer
  *
  * @attr {string} text - Primary footer text (default: "DEVELOPERS")
- * @attr {string} text-color - Text stroke color (default: "#1d1d1d")
+ * @attr {string} text-color - Text stroke color (default: "#000000")
  * @attr {string} bg-color - Background color (default: "#f5f5f5")
  * @attr {number} stroke-width - Text outline width (default: 2.5)
  * @attr {string} font-family - Font family (default: "sans-serif")
  * @attr {boolean} loop-enabled - Enable infinite loop (default: true)
  * @attr {string} texts - JSON array of texts for each loop iteration
+ * @attr {string} text-loops - JSON array of loop counts when each text should appear (e.g., [0, 3, 6, 9])
  * @attr {number} lerp-factor - Animation smoothness 0-1 (default: 0.1)
  *
  * @fires loop-complete - Fired when infinite loop resets
@@ -34,6 +35,7 @@ class InfiniteFooter extends HTMLElement {
       "font-family",
       "loop-enabled",
       "texts",
+      "text-loops",
       "lerp-factor",
     ];
   }
@@ -63,12 +65,13 @@ class InfiniteFooter extends HTMLElement {
     // Config with defaults
     this._config = {
       text: "DEVELOPERS",
-      textColor: "#1d1d1d",
+      textColor: "#000000",
       bgColor: "#f5f5f5",
       strokeWidth: 2.5,
       fontFamily: "sans-serif",
       loopEnabled: true,
       texts: null, // Will be computed from text
+      textLoops: null, // Loop counts when each text appears
       lerpFactor: 0.1,
     };
 
@@ -112,7 +115,7 @@ class InfiniteFooter extends HTMLElement {
         break;
 
       case "text-color":
-        this._config.textColor = newValue || "#1d1d1d";
+        this._config.textColor = newValue || "#000000";
         break;
 
       case "bg-color":
@@ -140,6 +143,15 @@ class InfiniteFooter extends HTMLElement {
         } catch (e) {
           console.warn("Invalid JSON for texts attribute:", e);
           this._config.texts = null;
+        }
+        break;
+
+      case "text-loops":
+        try {
+          this._config.textLoops = newValue ? JSON.parse(newValue) : null;
+        } catch (e) {
+          console.warn("Invalid JSON for text-loops attribute:", e);
+          this._config.textLoops = null;
         }
         break;
 
@@ -213,6 +225,18 @@ class InfiniteFooter extends HTMLElement {
     }
   }
 
+  get textLoops() {
+    return this._config.textLoops || this._getDefaultTextLoops();
+  }
+  set textLoops(value) {
+    this._config.textLoops = Array.isArray(value) ? value : null;
+    if (value) {
+      this.setAttribute("text-loops", JSON.stringify(value));
+    } else {
+      this.removeAttribute("text-loops");
+    }
+  }
+
   get lerpFactor() {
     return this._config.lerpFactor;
   }
@@ -236,22 +260,22 @@ class InfiniteFooter extends HTMLElement {
           display: block;
           position: relative;
           width: 100%;
-          background: var(--footer-bg-color, ${this._config.bgColor});
+          height: 200vh;
         }
 
         .footer-container {
           position: relative;
           height: 200vh;
-          background: var(--footer-bg-color, ${this._config.bgColor});
+          pointer-events: none;
         }
 
         canvas {
-          position: sticky;
+          position: fixed;
           top: 0;
-          left: 0;
-          width: 100%;
           height: 100vh;
           display: block;
+          pointer-events: none;
+          z-index: 9999;
         }
       </style>
       <div class="footer-container">
@@ -269,16 +293,20 @@ class InfiniteFooter extends HTMLElement {
     this._state.maxWidth = Math.min(1728, window.innerWidth);
     this._state.windowHeight = window.innerHeight;
 
-    const rect = this._canvas.getBoundingClientRect();
-    const newWidth = rect.width * this._state.dpr;
-    const newHeight = rect.height * this._state.dpr;
+    const hostRect = this.getBoundingClientRect();
+
+    this._canvas.style.left = hostRect.left + "px";
+    this._canvas.style.width = hostRect.width + "px";
+
+    const canvasWidth = hostRect.width * this._state.dpr;
+    const canvasHeight = this._state.windowHeight * this._state.dpr;
 
     if (
-      this._canvas.width !== newWidth ||
-      Math.abs(this._canvas.height - newHeight) > 120
+      this._canvas.width !== canvasWidth ||
+      Math.abs(this._canvas.height - canvasHeight) > 120
     ) {
-      this._canvas.width = newWidth;
-      this._canvas.height = newHeight;
+      this._canvas.width = canvasWidth;
+      this._canvas.height = canvasHeight;
     }
   }
 
@@ -291,14 +319,30 @@ class InfiniteFooter extends HTMLElement {
     ];
   }
 
+  _getDefaultTextLoops() {
+    return [10, 20, 30, 40];
+  }
+
   _getCurrentText() {
     const texts = this.texts;
-    const index = Math.min(this._state.tockCount, texts.length - 1);
-    return texts[index] || this._config.text;
+    const loops = this.textLoops;
+    const currentLoop = this._state.tockCount;
+
+    let textIndex = 0;
+    for (let i = loops.length - 1; i >= 0; i--) {
+      if (currentLoop >= loops[i]) {
+        textIndex = i;
+        break;
+      }
+    }
+
+    textIndex = Math.min(textIndex, texts.length - 1);
+    return texts[textIndex] || this._config.text;
   }
 
   _getBaseFontSize() {
-    const baseFontSize = (this._state.maxWidth / 6.35) * this._state.dpr;
+    const containerWidth = this.getBoundingClientRect().width;
+    const baseFontSize = (containerWidth / 6.35) * this._state.dpr;
     this._ctx.font = `bold ${baseFontSize}px ${this._config.fontFamily}`;
 
     const text = this._getCurrentText();
@@ -324,6 +368,12 @@ class InfiniteFooter extends HTMLElement {
 
     if (fontSize <= 0) return;
 
+    if (this._state.normalizedScroll < 0) {
+      this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+      this._state.lastClearY = Infinity;
+      return;
+    }
+
     this._ctx.font = `bold ${fontSize}px ${this._config.fontFamily}`;
 
     const newClearY = Math.max(
@@ -347,7 +397,6 @@ class InfiniteFooter extends HTMLElement {
     const startX = this._canvas.width / 2 - totalWidth / 2 + letterSpacing / 2;
     let currentX = startX;
 
-    // Use CSS custom properties or fallback to attributes
     const textColor =
       getComputedStyle(this).getPropertyValue("--footer-text-color").trim() ||
       this._config.textColor;
@@ -411,16 +460,18 @@ class InfiniteFooter extends HTMLElement {
     const canvasHeight = metrics.viewportHeight * this._state.dpr;
 
     // Text Y position calculation:
-    // - Canvas coordinate system: 0 at top, canvasHeight at bottom
-    // - strokeText y parameter is the text BASELINE
-    // - We want text to be visible immediately when footer appears
+    // When the sticky canvas first becomes visible (footer scrolling into view),
+    // we want text baseline to be at the bottom of the canvas so it's immediately visible.
     //
-    // For the text to be visible at the bottom of canvas when normalizedScroll=0,
-    // we set y = canvasHeight (baseline at bottom, text visible above it)
-    // As normalizedScroll increases, text moves up (y decreases)
+    // normalizedScroll ranges from negative (footer below viewport) to positive (scrolled into footer)
+    // We want text visible as soon as canvas is visible, which happens when normalizedScroll >= 0
+    //
+    // Strategy: Add a large offset so text starts well within the visible canvas area
+    // even at normalizedScroll = 0
 
     const baseHeight =
-      canvasHeight -
+      canvasHeight +
+      offset -
       this._state.normalizedScroll * canvasHeight +
       this._state.tockCount * canvasHeight;
 
@@ -458,7 +509,8 @@ class InfiniteFooter extends HTMLElement {
         window.scrollTo(0, this.offsetTop);
 
         const newBaseHeight =
-          canvasHeight -
+          canvasHeight +
+          offset -
           this._state.normalizedScroll * canvasHeight +
           this._state.tockCount * canvasHeight;
 
@@ -537,6 +589,7 @@ class InfiniteFooter extends HTMLElement {
   reset() {
     this._state.tockCount = 0;
     this._state.lastClearY = Infinity;
+    // Clear to transparent
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
     this._handleScroll();
   }
